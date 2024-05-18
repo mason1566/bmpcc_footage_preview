@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# Convert .braw footage to .mov
+main () {
+	# get the ffmpeg settings for the current clip
+	ffmpeg_flags=$(braw-decode --scale 4 --ff-format $1)
+
+	# get the filename (without the extension)
+	FILE=${1##*/} # Remove leading directories
+	FILE=${FILE%%.*} # Remove trailing extensions
+
+	mkdir -p output
+
+	# do conversion
+	braw-decode --scale 4 $1 | ffmpeg $ffmpeg_flags output/$FILE.mov
+	echo "Done!"
+}
+
+# Check if there are any arguments
+if [[ $# -eq 0 ]]; then
+	echo "No input files provided."
+	exit 1
+fi
+
+# Check if provided argument is a directory
+if [[ -d $1 ]]; then
+	# fill an array with all .braw files in the dir. Throw away ls error messages
+	declare -a footage=($(ls $1/*.braw 2> /dev/null))
+	
+	# Check if there are any .braw files in the array
+	if [[ ${#footage[@]} -gt 0 ]]; then
+		for footage in "${footage[@]}"; do
+			main "$footage"
+		done
+		exit 0
+	else
+		echo "No footage found in directory"
+		exit 1
+	fi
+fi
+
+# Check if provided argument is a .braw file
+if [[ $1 == *.braw ]]; then
+	main "$1"
+	exit 0
+else
+	echo "Footage must be a .braw file"
+	exit 1
+fi
